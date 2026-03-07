@@ -1,0 +1,15 @@
+[project]
+name = "python"
+version = "0.1.0"
+description = "A fast lightweight Python api for JDBC for database access."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "jpype1>=1.6.0",
+    "pandas>=2.3.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]

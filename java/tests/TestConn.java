@@ -27,7 +27,7 @@ public class TestConn {
                         System.out.println("SUCCESS: Connected to " + db);
                         System.out.println("DBMS: " + conn.getMetaData().getDatabaseProductName());
                     }
-                } catch (SQLExc ption e) {
+                } catch (SQLException e) {
                     System.err.println("FAILED: Could not connect to " + db);
                     System.err.println("Error: " + e.getMessage());
                 }
