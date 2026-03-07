@@ -54,3 +54,25 @@ Examples:
 ./scripts/compile-java.sh --main-only --clean
 ./scripts/compile-java.sh --out-dir ./python/resources/out
 ```
+
+## Generate Iris DB Fixtures
+
+Build fixture SQL and SQLite artifacts from `data/Iris.csv` for all database
+folders under `test-fixtures/databases`.
+
+### Windows (PowerShell)
+
+```powershell
+./python/.venv/Scripts/python.exe ./scripts/generate-iris-fixtures.py
+```
+
+### macOS/Linux (Bash)
+
+```bash
+./python/.venv/bin/python ./scripts/generate-iris-fixtures.py
+```
+
+Optional args:
+
+- `--csv <path>` custom source CSV path
+- `--fixtures-root <path>` custom output root

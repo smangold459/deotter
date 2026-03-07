@@ -212,3 +212,22 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local dataset downloads
+data/*
+!data/.gitkeep
+!data/Iris.csv
+
+# Test fixture outputs
+test-fixtures/**
+!test-fixtures/**/
+!test-fixtures/**/.gitkeep
+
+# Keep python resources folder structure, ignore generated/runtime contents
+!python/resources/
+!python/resources/lib/
+!python/resources/out/
+python/resources/lib/*
+!python/resources/lib/.gitkeep
+python/resources/out/**
+!python/resources/out/.gitkeep

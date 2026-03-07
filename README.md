@@ -80,6 +80,14 @@ Optional JDBC drivers:
 - Python package metadata is in `python/pyproject.toml`.
 - The project is currently lightweight and under active iteration.
 
+## AI Assistance Disclosure
+
+Parts of this repository, including documentation and testing artifacts, were
+created with AI assistance and reviewed by a human maintainer before merge.
+
+AI-generated output is treated as draft material and is validated through
+manual review and local test execution.
+
 ## License
 
 See `LICENSE`.

@@ -11,5 +11,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "kaggle>=1.7.4.5",
     "pytest>=8.4.2",
 ]
