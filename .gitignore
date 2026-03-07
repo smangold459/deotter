@@ -1,3 +1,10 @@
+# vscode
+.vscode/
+
+# java
+resources/
+*.class
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
