@@ -9,13 +9,13 @@ These scripts compile Java sources from:
 
 and output class files to:
 
-- `python/resources/out`
+- `~/.deotter/bin` (runtime target used by the Python wrapper)
 
 Driver jars can be placed in:
 
-- `python/resources/lib`
+- `~/.deotter/drivers`
 
-The Python runtime loads both compiled classes (`out`) and optional driver jars (`lib/*.jar`) into the JVM classpath.
+The Python runtime loads both compiled classes (`~/.deotter/bin`) and optional driver jars (`~/.deotter/drivers/*.jar`) into the JVM classpath.
 
 ### Windows (PowerShell)
 
@@ -33,7 +33,7 @@ Examples:
 
 ```powershell
 ./scripts/compile-java.ps1 -MainOnly -Clean
-./scripts/compile-java.ps1 -OutDir "./python/resources/out"
+./scripts/compile-java.ps1 -OutDir "$HOME/.deotter/bin"
 ```
 
 ### macOS/Linux (Bash)
@@ -52,7 +52,7 @@ Examples:
 
 ```bash
 ./scripts/compile-java.sh --main-only --clean
-./scripts/compile-java.sh --out-dir ./python/resources/out
+./scripts/compile-java.sh --out-dir ~/.deotter/bin
 ```
 
 ## Generate Iris DB Fixtures
@@ -76,3 +76,25 @@ Optional args:
 
 - `--csv <path>` custom source CSV path
 - `--fixtures-root <path>` custom output root
+
+## Run End-to-End Fixture DB Validation (Windows)
+
+Launches local Postgres, MySQL, and MSSQL test databases via Docker, seeds them
+from `test-fixtures/databases/*/init.sql`, uses the SQLite fixture file, and runs
+`com.deotter.tests.TestConn` to validate row access against dummy `iris` data.
+
+```powershell
+./scripts/run-fixture-db-tests.ps1
+```
+
+Options:
+
+- `-KeepRunning` leaves containers up after tests for manual inspection.
+
+Optional Sybase validation:
+
+- If you already have a Sybase instance running, set these env vars before
+	running the script to include it in the same Java validation pass:
+	- `DEOTTER_SYBASE_JDBC_URL`
+	- `DEOTTER_SYBASE_USER`
+	- `DEOTTER_SYBASE_PASSWORD`

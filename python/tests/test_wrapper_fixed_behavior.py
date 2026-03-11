@@ -187,7 +187,7 @@ def test_fetchone_returns_wrapped_single_row() -> None:
     assert wrapped == [(7, "z")]
 
 
-def test_manage_jvm_is_noop_if_jvm_already_started(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ensure_jvm_is_noop_if_jvm_already_started(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(wrapper.jpype, "isJVMStarted", lambda: True)
 
     called = {"start": 0}
@@ -197,6 +197,6 @@ def test_manage_jvm_is_noop_if_jvm_already_started(monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(wrapper.jpype, "startJVM", fake_start_jvm)
 
-    wrapper.manage_jvm()
+    wrapper.ensure_jvm()
 
     assert called["start"] == 0

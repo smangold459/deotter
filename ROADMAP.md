@@ -20,15 +20,12 @@ Template:
 
 ## Now
 
-- [ ] [P1][todo] Stabilize `python/src/deotter/wrapper.py` fixed-behavior test pass (owner: @smang, issue: #1)
-- [ ] [P1][todo] Create functional dummy databases in `test-fixtures/databases` for supported engines (owner: @smang, issue: #2)
 - [ ] [P1][todo] Add test execution on virtual machines emulating Windows and macOS/Linux environments (owner: @smang, issue: #3)
 - [ ] [P1][todo] Document end-to-end packaging and runtime install flow for Python distribution (owner: @smang, issue: #4)
 
 ## Next
 
 - [ ] [P2][todo] Add CI checks for Python tests and Java compile scripts on Windows and Linux (owner: @smang, issue: #5)
-- [ ] [P2][todo] Add integration test path that validates JDBC driver discovery from `python/resources/lib` (owner: @smang, issue: #6)
 - [ ] [P3][todo] Add contributor guide for local setup and common commands (owner: @smang, issue: #7)
 
 ## Later
@@ -42,6 +39,9 @@ Template:
 
 ## Done
 
+- 2026-03-10: Stabilized `python/src/deotter/wrapper.py` fixed-behavior pass and aligned tests (issue: #1)
+- 2026-03-10: Added functional fixture DB validation workflow for supported engines (issue: #2)
+- 2026-03-10: Added integration validation path for JDBC driver discovery from `~/.deotter/drivers` (issue: #6)
 - 2026-03-07: Added cross-platform Java compile scripts in `scripts/`
-- 2026-03-07: Added optional JDBC driver classpath folder `python/resources/lib`
+- 2026-03-07: Added optional JDBC driver classpath folder `~/.deotter/drivers`
 - 2026-03-07: Added initial test fixture structure under `test-fixtures/databases`

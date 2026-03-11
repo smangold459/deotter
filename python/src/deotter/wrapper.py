@@ -1,5 +1,7 @@
+import platform
 from pathlib import Path
 import re
+import subprocess
 from types import TracebackType
 from typing import Optional, Type
 
@@ -67,17 +69,20 @@ class DeotterCursor:
         Args:
             sql_input (str): Either a raw SQL string or a path to sql file
         """
-        input_str = str(sql_input)
-        if not isinstance(sql_input, str):
-            raise TypeError("sql_input must be of type str or pathlib.Path")
-        elif "\n" in input_str or len(input_str) > 225:
-            sql = input_str
-        else:
-            p = Path(input_str).expanduser()
-            if p.is_file():
-                sql = p.read_text()
+        if isinstance(sql_input, Path):
+            sql = sql_input.expanduser().read_text(encoding="utf-8")
+        elif isinstance(sql_input, str):
+            input_str = sql_input
+            if "\n" in input_str or len(input_str) > 225:
+                sql = input_str
             else:
-                self = input_str
+                p = Path(input_str).expanduser()
+                if p.is_file():
+                    sql = p.read_text(encoding="utf-8")
+                else:
+                    sql = input_str
+        else:
+            raise TypeError("sql_input must be of type str or pathlib.Path")
 
         param_names = re.findall(r"\{(\w+)\}", sql)
         jdbc_sql = re.sub(r"\{(\w+)\}", "?", sql)
@@ -93,14 +98,14 @@ class DeotterCursor:
 
         if jdbc_sql.strip().lower().startswith("select"):
             self._rs = self._stmt.executeQuery()
-            self._updater_description()
+            self._update_description()
         else:
             self._stmt.executeUpdate()
             self._description = None
 
     def _update_description(self):
         """Updates meta data related to result set"""
-        mata = self._rs.getMetaData()
+        meta = self._rs.getMetaData()
         self._description = [
             (meta.getColumnLabel(i), None, None, None, None, None, None)
             for i in range(1, meta.getColumnCount() + 1)
@@ -130,7 +135,7 @@ class DeotterCursor:
         
         java_data = self._mgr.fetchAllRows(self._rs)
 
-        return [tuple(self._clean_values(v) for v in row) for v in java_data]
+        return [tuple(self._clean_value(v) for v in row) for row in java_data]
     
     def fetchall(self) -> DeotterResultSet:
         """Fetches all rows from the result set"""
@@ -142,24 +147,27 @@ class DeotterCursor:
         
         java_data = self._mgr.fetchManyRows(self._rs, size)
 
-        return [tuple(self._clean_values(val) for val in row) for row in java_data]
+        return [tuple(self._clean_value(val) for val in row) for row in java_data]
     
     def fetchmany(self, size: int = 1) -> DeotterResultSet:
         """Fetches the next 'size' rows from the result set"""
-        return self._wrap_rows(self._raw_fetchmany(), size)
+        return self._wrap_rows(self._raw_fetchmany(size))
     
-    def raw_fetchone(self) -> tuple:
-        if not self._rs and self._rs.next():
+    def raw_fetchone(self) -> tuple | None:
+        if not self._rs or not self._rs.next():
             return None
-        
-        num_cols = list(self.description)
+
+        num_cols = len(self.description or [])
         return tuple(
             self._clean_value(self._rs.getObject(i)) for i in range(1, num_cols + 1)
         )
 
     def fetchone(self) -> DeotterResultSet:
         """Fetches one row from the result set"""
-        return self._wrap_rows(self.raw_fetchone(self.raw_fetchone()))
+        row = self.raw_fetchone()
+        if row is None:
+            return self._wrap_rows([])
+        return self._wrap_rows([row])
     
     def close(self):
         """Closes the cursor"""
@@ -182,18 +190,85 @@ class DeotterCursor:
 
 JAVA_BASE = Path(__file__).resolve().parents[2] / "resources"
 JAVA_OUT = JAVA_BASE / "out"
-JAVA_LIB = JAVA_BASE / "lib"
+DEOTTER_HOME = Path.home() / ".deotter"
+JAVA_BIN = DEOTTER_HOME / "bin"
+JAVA_DRIVERS = DEOTTER_HOME / "drivers"
 
-def manage_jvm():
+
+def discover_java_driver_jars() -> list[str]:
+    """Returns driver JAR paths from ~/.deotter/drivers when present."""
+    if not JAVA_DRIVERS.exists():
+        return []
+    return [str(j.resolve()) for j in sorted(JAVA_DRIVERS.glob("*.jar"))]
+
+def ensure_jvm():
+    """Ensures JVM is started and if not, starts it."""
     if jpype.isJVMStarted():
         return
 
-    cp = [str(JAVA_OUT.resolve())]
+    ensure_java_resources()
 
-    if JAVA_LIB.exists():
-        cp.extend(str(j.resolve()) for j in sorted(JAVA_LIB.glob("*.jar")))
+    cp = [str(JAVA_BIN.resolve())]
+    # Drivers may come from the Java runtime or from user-provided jars in ~/.deotter/drivers.
+    cp.extend(discover_java_driver_jars())
+
+    # Backward compatibility for local dev layouts that still compile into repo resources/out.
+    if JAVA_OUT.exists():
+        cp.append(str(JAVA_OUT.resolve()))
 
     jpype.startJVM(classpath=cp)
+
+def ensure_java_resources():
+    """
+    Checks the user's home directory for .deotter/bin, and that the necessary java
+    resources have been compiled into it.
+    """
+    bin_dir = JAVA_BIN
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    bin_dir_classes = {p.name for p in bin_dir.glob("*.class")}
+
+    repo_root = Path(__file__).resolve().parent.parent.parent.parent
+
+    java_dir = repo_root / "java" / "main"
+    java_class_names = {f"{p.stem}.class" for p in java_dir.glob("*.java")}
+
+    os_name = platform.system()
+    if os_name == "Windows":
+        compile_script = repo_root / "scripts" / "compile-java.ps1"
+    else:
+        compile_script = repo_root / "scripts" / "compile-java.sh"
+
+    if java_class_names.issubset(bin_dir_classes):
+        return
+    else:
+        if os_name == "Windows":
+            subprocess.run(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(compile_script),
+                    "-OutDir",
+                    str(bin_dir),
+                    "-MainOnly",
+                ],
+                check=True,
+                cwd=repo_root,
+            )
+        else:
+            subprocess.run(
+                [
+                    "bash",
+                    str(compile_script),
+                    "--out-dir",
+                    str(bin_dir),
+                    "--main-only",
+                ],
+                check=True,
+                cwd=repo_root,
+            )
 
 class DeotterConnection:
     """
@@ -201,7 +276,7 @@ class DeotterConnection:
     """
 
     def __init__(self, db_alias: str, autocommit=True):
-        manage_jvm()
+        ensure_jvm()
         from com.deotter.db import ConnectionManager
 
         self._mgr = ConnectionManager.getInstance()

@@ -35,12 +35,12 @@ analytics.password=secret
 
 If your database driver is not already available in your Java runtime, place the driver JAR in:
 
-- `python/resources/lib`
+- `~/.deotter/drivers`
 
 When `deotter` starts the JVM, it automatically builds the classpath from:
 
-- `python/resources/out`
-- all JARs matching `python/resources/lib/*.jar`
+- `~/.deotter/bin`
+- all JARs matching `~/.deotter/drivers/*.jar`
 
 This lets you add or swap JDBC drivers without changing Python code.
 
@@ -97,7 +97,7 @@ Fetch methods return `DeotterResultSet`, which extends `list` and provides:
 
 If you see errors like `No suitable driver`, `ClassNotFoundException`, or `NoClassDefFoundError`:
 
-1. Confirm the JDBC driver JAR is present in `python/resources/lib`.
+1. Confirm the JDBC driver JAR is present in `~/.deotter/drivers`.
 2. Confirm the alias in `~/.config/deotter/config.properties` has the correct JDBC URL format for that driver.
 3. Restart the Python process after adding or replacing JARs so the JVM is started with the updated classpath.
 4. Ensure your Java runtime version is compatible with the JDBC driver version.

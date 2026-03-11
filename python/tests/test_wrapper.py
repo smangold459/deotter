@@ -157,11 +157,17 @@ def test_wrap_rows_returns_deotter_result_set() -> None:
     assert wrapped.columns == ["id", "name"]
 
 
-def test_execute_rejects_path_input_current_behavior() -> None:
-    cursor = wrapper.DeotterCursor(FakeJavaConnection(), FakeManager())
+def test_execute_accepts_path_input_for_sql_file(tmp_path: Path) -> None:
+    sql_file = tmp_path / "query.sql"
+    sql_file.write_text("SELECT * FROM users WHERE id = {id}\n", encoding="utf-8")
 
-    with pytest.raises(TypeError):
-        cursor.execute(Path("query.sql"))
+    stmt = FakeStatement(FakeResultSet(["id", "name"]))
+    conn = FakeJavaConnection(stmt)
+    cursor = wrapper.DeotterCursor(conn, FakeManager())
+
+    cursor.execute(sql_file, id=1)
+
+    assert conn.prepared_sql == "SELECT * FROM users WHERE id = ?\n"
 
 
 def test_execute_non_select_binds_params_and_updates() -> None:
@@ -177,13 +183,18 @@ def test_execute_non_select_binds_params_and_updates() -> None:
     assert cursor.description is None
 
 
-def test_execute_select_hits_current_typo_bug() -> None:
+def test_execute_select_updates_description() -> None:
     stmt = FakeStatement(FakeResultSet(["id", "name"]))
     conn = FakeJavaConnection(stmt)
     cursor = wrapper.DeotterCursor(conn, FakeManager())
 
-    with pytest.raises(AttributeError, match="_updater_description"):
-        cursor.execute("""SELECT id, name\nFROM users WHERE id = {id}""", id=1)
+    cursor.execute("""SELECT id, name\nFROM users WHERE id = {id}""", id=1)
+
+    assert stmt.query_executed is True
+    assert cursor.description == [
+        ("id", None, None, None, None, None, None),
+        ("name", None, None, None, None, None, None),
+    ]
 
 
 def test_execute_raises_key_error_for_missing_param() -> None:
@@ -193,42 +204,46 @@ def test_execute_raises_key_error_for_missing_param() -> None:
         cursor.execute("""SELECT *\nFROM users WHERE id = {id}""")
 
 
-def test_raw_fetchall_exposes_current_row_name_bug() -> None:
+def test_raw_fetchall_returns_cleaned_rows() -> None:
     cursor = wrapper.DeotterCursor(FakeJavaConnection(), FakeManager())
     cursor._rs = FakeResultSet()
 
-    with pytest.raises(NameError, match="row"):
-        cursor._raw_fetchall()
+    assert cursor._raw_fetchall() == [(1, "alice"), (2, "bob")]
 
 
-def test_raw_fetchmany_exposes_current_clean_values_typo() -> None:
+def test_raw_fetchmany_returns_cleaned_rows() -> None:
     cursor = wrapper.DeotterCursor(FakeJavaConnection(), FakeManager())
     cursor._rs = FakeResultSet()
 
-    with pytest.raises(AttributeError, match="_clean_values"):
-        cursor._raw_fetchmany(1)
+    assert cursor._raw_fetchmany(1) == [(3, "carol")]
 
 
-def test_fetchmany_exposes_current_signature_bug() -> None:
+def test_fetchmany_wraps_rows() -> None:
     cursor = wrapper.DeotterCursor(FakeJavaConnection(), FakeManager())
+    cursor._rs = FakeResultSet()
+    cursor._description = ["id", "name"]
 
-    with pytest.raises(TypeError):
-        cursor.fetchmany(5)
+    wrapped = cursor.fetchmany(5)
+
+    assert isinstance(wrapped, wrapper.DeotterResultSet)
+    assert wrapped == [(3, "carol")]
 
 
-def test_raw_fetchone_raises_when_result_set_is_none() -> None:
+def test_raw_fetchone_returns_none_when_result_set_is_none() -> None:
     cursor = wrapper.DeotterCursor(FakeJavaConnection(), FakeManager())
     cursor._rs = None
 
-    with pytest.raises(AttributeError):
-        cursor.raw_fetchone()
+    assert cursor.raw_fetchone() is None
 
 
-def test_fetchone_exposes_recursive_call_bug() -> None:
+def test_fetchone_returns_empty_wrapper_when_result_set_missing() -> None:
     cursor = wrapper.DeotterCursor(FakeJavaConnection(), FakeManager())
+    cursor._description = ["id", "name"]
 
-    with pytest.raises(AttributeError, match="next"):
-        cursor.fetchone()
+    wrapped = cursor.fetchone()
+
+    assert isinstance(wrapped, wrapper.DeotterResultSet)
+    assert wrapped == []
 
 
 def test_cursor_close_closes_result_set_and_statement() -> None:
@@ -258,27 +273,73 @@ def test_cursor_context_manager_closes_on_exit() -> None:
     assert stmt.closed is True
 
 
-def test_manage_jvm_starts_when_not_running(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ensure_jvm_starts_when_not_running(monkeypatch: pytest.MonkeyPatch) -> None:
     called: dict[str, Any] = {}
 
     monkeypatch.setattr(wrapper.jpype, "isJVMStarted", lambda: False)
+    monkeypatch.setattr(wrapper, "ensure_java_resources", lambda: None)
+    monkeypatch.setattr(wrapper, "discover_java_driver_jars", lambda: [])
 
     def fake_start_jvm(*, classpath: list[str]) -> None:
         called["classpath"] = classpath
 
     monkeypatch.setattr(wrapper.jpype, "startJVM", fake_start_jvm)
 
-    wrapper.manage_jvm()
+    wrapper.ensure_jvm()
 
     assert "classpath" in called
-    assert str(wrapper.JAVA_OUT.resolve()) in called["classpath"]
+    assert str(wrapper.JAVA_BIN.resolve()) in called["classpath"]
 
 
-def test_manage_jvm_currently_breaks_if_already_started(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ensure_jvm_noop_if_already_started(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(wrapper.jpype, "isJVMStarted", lambda: True)
+    monkeypatch.setattr(wrapper, "ensure_java_resources", lambda: None)
 
-    with pytest.raises(UnboundLocalError):
-        wrapper.manage_jvm()
+    called = {"start": 0}
+
+    def fake_start_jvm(*, classpath: list[str]) -> None:
+        called["start"] += 1
+
+    monkeypatch.setattr(wrapper.jpype, "startJVM", fake_start_jvm)
+
+    wrapper.ensure_jvm()
+
+    assert called["start"] == 0
+
+
+def test_discover_java_driver_jars_returns_empty_if_directory_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    missing_dir = tmp_path / "missing-drivers"
+    monkeypatch.setattr(wrapper, "JAVA_DRIVERS", missing_dir)
+
+    assert wrapper.discover_java_driver_jars() == []
+
+
+def test_ensure_jvm_includes_discovered_driver_jars(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    drivers_dir = tmp_path / "drivers"
+    drivers_dir.mkdir()
+    jar = drivers_dir / "demo-driver.jar"
+    jar.write_bytes(b"jar")
+
+    called: dict[str, Any] = {}
+
+    monkeypatch.setattr(wrapper.jpype, "isJVMStarted", lambda: False)
+    monkeypatch.setattr(wrapper, "ensure_java_resources", lambda: None)
+    monkeypatch.setattr(wrapper, "JAVA_DRIVERS", drivers_dir)
+
+    def fake_start_jvm(*, classpath: list[str]) -> None:
+        called["classpath"] = classpath
+
+    monkeypatch.setattr(wrapper.jpype, "startJVM", fake_start_jvm)
+
+    wrapper.ensure_jvm()
+
+    assert str(jar.resolve()) in called["classpath"]
 
 
 def test_connection_properties_commit_rollback_and_close() -> None:
@@ -339,7 +400,7 @@ def test_connection_init_uses_java_connection_manager(monkeypatch: pytest.Monkey
             assert alias == "main"
             return fake_java_conn
 
-    monkeypatch.setattr(wrapper, "manage_jvm", lambda: None)
+    monkeypatch.setattr(wrapper, "ensure_jvm", lambda: None)
 
     import types
 

@@ -71,8 +71,8 @@ with deotter.connect("main", autocommit=False) as conn:
 
 Optional JDBC drivers:
 
-- Drop driver JARs into `python/resources/lib`.
-- At runtime, the Python wrapper adds both `python/resources/out` and all `python/resources/lib/*.jar` entries to the JVM classpath.
+- Drop driver JARs into `~/.deotter/drivers`.
+- At runtime, the Python wrapper compiles Java classes into `~/.deotter/bin` and adds all `~/.deotter/drivers/*.jar` entries to the JVM classpath.
 
 ## Development Notes
 
