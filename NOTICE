@@ -1,0 +1,15 @@
+NOTICE
+
+deotter
+
+Copyright 2026 Shane R. Mangold
+
+This product is licensed under the Apache License, Version 2.0.
+See http://www.apache.org/licenses/LICENSE-2.0 or the LICENSE file for the full license text.
+
+This product includes the following third-party software:
+
+- JPype1 (Apache License 2.0)
+- Pandas (BSD License)
+
+For full license texts, see the LICENSE file and individual dependency licenses.

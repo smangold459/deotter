@@ -34,13 +34,7 @@ function Invoke-Python {
         [string[]]$Args
     )
 
-    $cmd = Get-PythonCommand
-    if ($cmd.Length -gt 1) {
-        & $cmd[0] $cmd[1..($cmd.Length - 1)] @Args
-    }
-    else {
-        & $cmd[0] @Args
-    }
+    & python $Args
     if ($LASTEXITCODE -ne 0) {
         throw "Python command failed: $($Args -join ' ')"
     }
