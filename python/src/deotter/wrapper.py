@@ -1,3 +1,10 @@
+"""
+Copyright 2026 Shane R. Mangold
+
+Licensed under the Apache License, Version 2.0.
+See http://www.apache.org/licenses/LICENSE-2.0 or LICENSE file for details.
+"""
+
 import platform
 from pathlib import Path
 import re
