@@ -39,6 +39,7 @@ Template:
 
 ## Done
 
+- 2026-03-12: Validated Sybase ASE JDBC driver integration using SAP SDK jconn42.jar without requiring database instance (issue: #10)
 - 2026-03-12: Completed containerized database testing for SQLite, PostgreSQL, MySQL, and MSSQL fixtures; fixed MySQL 8.4 compatibility (issue: #2)
 - 2026-03-10: Stabilized `python/src/deotter/wrapper.py` fixed-behavior pass and aligned tests (issue: #1)
 - 2026-03-10: Added integration validation path for JDBC driver discovery from `~/.deotter/drivers` (issue: #6)
