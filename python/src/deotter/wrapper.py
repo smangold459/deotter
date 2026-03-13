@@ -5,6 +5,8 @@ Licensed under the Apache License, Version 2.0.
 See http://www.apache.org/licenses/LICENSE-2.0 or LICENSE file for details.
 """
 
+from __future__ import annotations
+
 import platform
 from pathlib import Path
 import re
@@ -23,7 +25,7 @@ class DeotterResultSet(list):
         super().__init__(data)
         self.columns = columns
 
-    def as_dataframe(self) -> "DataFrame":
+    def as_dataframe(self) -> "DataFrame":  # noqa: F821
         """Converts the reuslts to a Pandas Dataframe"""
         import pandas as pd
         return pd.DataFrame(self, columns=self.columns)
@@ -32,7 +34,7 @@ class DeotterResultSet(list):
         """Converts the results to a list of dicts"""
         return [dict(zip(self.columns, row)) for row in self]
     
-    def as_json(self, indent=None) -> "JSON":
+    def as_json(self, indent=None) -> "JSON":  # noqa: F821
         """Converts results to a JSON"""
         import json
         return json.dumps(self, indent=indent, ensure_ascii=False)
@@ -45,8 +47,8 @@ class DeotterCursor:
     
     def __init__(
             self,
-            java_conn:"java.sql.Connection",
-            mgr:"ConnectionManager"
+            java_conn:"java.sql.Connection",  # noqa: F821
+            mgr:"ConnectionManager"  # noqa: F821
         ):
         self._conn = java_conn
         self._mgr = mgr
