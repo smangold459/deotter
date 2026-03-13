@@ -39,8 +39,8 @@ Template:
 
 ## Done
 
+- 2026-03-12: Completed containerized database testing for SQLite, PostgreSQL, MySQL, and MSSQL fixtures; fixed MySQL 8.4 compatibility (issue: #2)
 - 2026-03-10: Stabilized `python/src/deotter/wrapper.py` fixed-behavior pass and aligned tests (issue: #1)
-- 2026-03-10: Added functional fixture DB validation workflow for supported engines (issue: #2)
 - 2026-03-10: Added integration validation path for JDBC driver discovery from `~/.deotter/drivers` (issue: #6)
 - 2026-03-07: Added cross-platform Java compile scripts in `scripts/`
 - 2026-03-07: Added optional JDBC driver classpath folder `~/.deotter/drivers`
